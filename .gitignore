@@ -3,3 +3,4 @@ loss-plot
 temperature-plot
 __pycache__/
 .vscode/
+gpt_pretrained.pt
