@@ -1,3 +1,5 @@
 .DS_Store
 loss-plot
 temperature-plot
+__pycache__/
+.vscode/
