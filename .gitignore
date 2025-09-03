@@ -4,3 +4,5 @@ temperature-plot
 __pycache__/
 .vscode/
 gpt_pretrained.pt
+L27_L28_train_LLM_train_loop.ipynb
+L29_L30_L31_temperature_scaling_top_k_sampling_save_load.ipynb
