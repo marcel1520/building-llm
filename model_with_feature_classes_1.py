@@ -5,7 +5,7 @@ from torch import nn
 GPT_CONFIG_124M = {
     "vocab_size": 50257,
     "context_length": 1024,
-    "token_emb": 768,
+    "emb_dim": 768,
     "n_heads": 12,
     "n_layers": 12,
     "drop_rate": 0.1,
@@ -38,9 +38,9 @@ class FeedForward(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.layer_stack = nn.Sequential(
-            nn.Linear(cfg["token_emb"], 4 * cfg["token_emb"]),
+            nn.Linear(cfg["emb_dim"], 4 * cfg["emb_dim"]),
             GELU(),
-            nn.Linear(4 * cfg["token_emb"], cfg["token_emb"])
+            nn.Linear(4 * cfg["emb_dim"], cfg["emb_dim"])
         )
     
     def forward(self, x):
@@ -97,8 +97,8 @@ class TransformerBlock(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.att = MultiHeadAttention(
-            d_in=cfg["token_emb"],
-            d_out=cfg["token_emb"],
+            d_in=cfg["emb_dim"],
+            d_out=cfg["emb_dim"],
             context_length=cfg["context_length"],
             num_heads=cfg["n_heads"],
             dropout=cfg["drop_rate"],
@@ -106,8 +106,8 @@ class TransformerBlock(nn.Module):
         )
 
         self.ff = FeedForward(cfg)
-        self.norm1 = LayerNorm(cfg["token_emb"])
-        self.norm2 = LayerNorm(cfg["token_emb"])
+        self.norm1 = LayerNorm(cfg["emb_dim"])
+        self.norm2 = LayerNorm(cfg["emb_dim"])
         self.drop_shortcut = nn.Dropout(cfg["drop_rate"])
     
     def forward(self, x):
@@ -129,22 +129,22 @@ class TransformerBlock(nn.Module):
 class GPTModel(nn.Module):
     def __init__(self, cfg):
         super().__init__()
-        self.input_emb = nn.Embedding(cfg["vocab_size"], cfg["token_emb"])
-        self.pos_emb = nn.Embedding(cfg["context_length"], cfg["token_emb"])
+        self.token_emb = nn.Embedding(cfg["vocab_size"], cfg["emb_dim"])
+        self.pos_emb = nn.Embedding(cfg["context_length"], cfg["emb_dim"])
         self.drop_emb = nn.Dropout(cfg["drop_rate"])
 
         self.trf_blocks = nn.Sequential(
             *[TransformerBlock(cfg) for _ in range(cfg["n_layers"])]
         )
 
-        self.final_norm = LayerNorm(cfg["token_emb"])
+        self.final_norm = LayerNorm(cfg["emb_dim"])
         self.out_head = nn.Linear(
-            cfg["token_emb"], cfg["vocab_size"], bias=False
+            cfg["emb_dim"], cfg["vocab_size"], bias=False
         )
 
     def forward(self, in_idx):
         batch_size, seq_len = in_idx.shape
-        input_embeds = self.input_emb(in_idx)
+        input_embeds = self.token_emb(in_idx)
         pos_embeds = self.pos_emb(torch.arange(seq_len, device=in_idx.device))
         x = input_embeds + pos_embeds
         x = self.drop_emb(x)
