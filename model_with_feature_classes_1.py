@@ -38,9 +38,9 @@ class FeedForward(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.layer_stack = nn.Sequential(
-            nn.Linear(cfg["emb_dim"], 4 * cfg["emb_dim"]),
+            nn.Linear(cfg["token_emb"], 4 * cfg["token_emb"]),
             GELU(),
-            nn.Linear(4 * cfg["emb_dim"], cfg["emb_dim"])
+            nn.Linear(4 * cfg["token_emb"], cfg["token_emb"])
         )
     
     def forward(self, x):
@@ -97,8 +97,8 @@ class TransformerBlock(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.att = MultiHeadAttention(
-            d_in=cfg["emb_dim"],
-            d_out=cfg["emb_dim"],
+            d_in=cfg["token_emb"],
+            d_out=cfg["token_emb"],
             context_length=cfg["context_length"],
             num_heads=cfg["n_heads"],
             dropout=cfg["drop_rate"],
@@ -106,8 +106,8 @@ class TransformerBlock(nn.Module):
         )
 
         self.ff = FeedForward(cfg)
-        self.norm1 = LayerNorm(cfg["emb_dim"])
-        self.norm2 = LayerNorm(cfg["emb_dim"])
+        self.norm1 = LayerNorm(cfg["token_emb"])
+        self.norm2 = LayerNorm(cfg["token_emb"])
         self.drop_shortcut = nn.Dropout(cfg["drop_rate"])
     
     def forward(self, x):
@@ -129,17 +129,17 @@ class TransformerBlock(nn.Module):
 class GPTModel(nn.Module):
     def __init__(self, cfg):
         super().__init__()
-        self.input_emb = nn.Embedding(cfg["vocab_size"], cfg["emb_dim"])
-        self.pos_emb = nn.Embedding(cfg["context_length"], cfg["emb_dim"])
+        self.input_emb = nn.Embedding(cfg["vocab_size"], cfg["token_emb"])
+        self.pos_emb = nn.Embedding(cfg["context_length"], cfg["token_emb"])
         self.drop_emb = nn.Dropout(cfg["drop_rate"])
 
         self.trf_blocks = nn.Sequential(
             *[TransformerBlock(cfg) for _ in range(cfg["n_layers"])]
         )
 
-        self.final_norm = LayerNorm(cfg["emb_dim"])
+        self.final_norm = LayerNorm(cfg["token_emb"])
         self.out_head = nn.Linear(
-            cfg["emb_dim"], cfg["vocab_size"], bias=False
+            cfg["token_emb"], cfg["vocab_size"], bias=False
         )
 
     def forward(self, in_idx):
