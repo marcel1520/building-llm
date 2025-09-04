@@ -106,19 +106,19 @@ class TransformerBlock(nn.Module):
         )
 
         self.feedforw = FeedForward(cfg)
-        self.norm1 = LayerNorm(cfg["emb_dim"])
-        self.norm2 = LayerNorm(cfg["emb_dim"])
+        self.Layernorm1 = LayerNorm(cfg["emb_dim"])
+        self.Layernorm2 = LayerNorm(cfg["emb_dim"])
         self.drop_shortcut = nn.Dropout(cfg["drop_rate"])
     
     def forward(self, x):
         shortcut = x
-        x = self.norm1(x)
+        x = self.Layernorm1(x)
         x = self.attn(x)
         x = self.drop_shortcut(x)
         x = x + shortcut
         
         shortcut = x
-        x = self.norm2(x)
+        x = self.Layernorm2(x)
         x = self.feedforw(x)
         x = self.drop_shortcut(x)
         x = x + shortcut
