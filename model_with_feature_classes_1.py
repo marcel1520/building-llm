@@ -105,7 +105,7 @@ class TransformerBlock(nn.Module):
             qkv_bias=cfg["qkv_bias"]
         )
 
-        self.ff = FeedForward(cfg)
+        self.feedforw = FeedForward(cfg)
         self.norm1 = LayerNorm(cfg["emb_dim"])
         self.norm2 = LayerNorm(cfg["emb_dim"])
         self.drop_shortcut = nn.Dropout(cfg["drop_rate"])
@@ -119,7 +119,7 @@ class TransformerBlock(nn.Module):
         
         shortcut = x
         x = self.norm2(x)
-        x = self.ff(x)
+        x = self.feedforw(x)
         x = self.drop_shortcut(x)
         x = x + shortcut
 
