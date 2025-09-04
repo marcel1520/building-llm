@@ -16,14 +16,14 @@ class LayerNorm(nn.Module):
     def __init__(self, emb_dim):
         super().__init__()
         self.eps = 1e-5
-        self.scale = nn.Parameter(torch.ones(emb_dim))
-        self.shift = nn.Parameter(torch.zeros(emb_dim))
+        self.scale_params = nn.Parameter(torch.ones(emb_dim))
+        self.shift_params = nn.Parameter(torch.zeros(emb_dim))
 
     def forward(self, x):
         mean = x.mean(dim=-1, keepdim=True)
         var = x.var(dim=-1, unbiased=False, keepdim=True)
         norm = (x - mean) / (torch.sqrt(var + self.eps))
-        return self.scale * norm + self.shift
+        return self.scale_params * norm + self.shift_params
     
 
 class GELU(nn.Module):
