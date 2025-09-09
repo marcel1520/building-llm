@@ -27,7 +27,7 @@ def calc_loss_loader(data_loader, model, device, num_batches=None):
   return total_loss / num_batches
 
 
-def train_classifier_simple(model, train_loader, valid_loader, optimizer, device, num_epochs, eval_freq, eval_iter):
+def train_simple(model, train_loader, valid_loader, optimizer, device, num_epochs, eval_freq, eval_iter):
   train_losses, valid_losses = [], []
   train_accs, valid_accs = [], []
 
