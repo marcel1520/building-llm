@@ -1,5 +1,7 @@
 import torch
 from torch import nn
+import helper_functions
+from helper_functions import generate_text_simple, text_to_token_ids, token_ids_to_text
 
 
 def calc_loss_batch(input_batch, target_batch, model, device):
@@ -28,38 +30,54 @@ def calc_loss_loader(data_loader, model, device, num_batches=None):
       break
   return total_loss / num_batches
 
-
-def train_simple(model, train_loader, valid_loader, optimizer, device, num_epochs, eval_freq, eval_iter):
-  train_losses, valid_losses = [], []
-  train_accs, valid_accs = [], []
-
-  examples_seen, global_step = 0, -1
-  for epoch in range(num_epochs):
+def generate_and_print_sample(model, tokenizer, device, start_context):
+    model.eval()
+    context_size = model.pos_emb.weight.shape[0]
+    encoded = text_to_token_ids(start_context, tokenizer).to(device)
+    with torch.no_grad():
+        token_ids = generate_text_simple(
+            model=model, idx=encoded,
+            max_new_tokens=50, context_size=context_size
+        )
+        decoded_text = token_ids_to_text(token_ids, tokenizer)
+        print(decoded_text.replace("\n", " "))
     model.train()
 
-    for input_batch, target_batch in train_loader:
-      optimizer.zero_grad()
-      loss = calc_loss_batch(input_batch, target_batch, model, device)
-      loss.backward()
-      optimizer.step()
-      examples_seen += input_batch.shape[0]
-      global_step += 1
 
-      if global_step % eval_freq == 0:
-        train_loss, valid_loss = evaluate_model(
-            model, train_loader, valid_loader, device, eval_iter
+def train_model_simple(model, train_loader, val_loader, optimizer, device, num_epochs,
+                       eval_freq, eval_iter, start_context, tokenizer):
+    
+    train_losses, val_losses, track_tokens_seen = [], [], []
+    tokens_seen = 0
+    global_step = -1
+
+    for epoch in range(num_epochs):
+        model.train() 
+
+        for input_batch, target_batch in train_loader:
+            optimizer.zero_grad()  
+            loss = calc_loss_batch(input_batch, target_batch, model, device)
+            loss.backward()  
+            optimizer.step()  
+            tokens_seen += input_batch.numel()
+            global_step += 1
+
+            
+            if global_step % eval_freq == 0:
+                train_loss, val_loss = evaluate_model(
+                    model, train_loader, val_loader, device, eval_iter)
+                train_losses.append(train_loss)
+                val_losses.append(val_loss)
+                track_tokens_seen.append(tokens_seen)
+                print(f"Ep {epoch+1} (Step {global_step:06d}): "
+                      f"Train loss {train_loss:.3f}, Val loss {val_loss:.3f}")
+
+
+        generate_and_print_sample(
+            model, tokenizer, device, start_context
         )
-        train_losses.append(train_loss)
-        valid_losses.append(valid_loss)
-        print(f"Epoch: {epoch}, (Step {global_step:06d}): "
-              f"Train loss: {train_loss:.3f}, Valid loss: {valid_loss:.3f}")
-    train_acc = calc_accuracy_loader(train_loader, model, device, num_batches=eval_iter)
-    valid_acc = calc_accuracy_loader(valid_loader, model, device, num_batches=eval_iter)
-    print(f"Training acc: {train_acc*100:.3f} % | ", end="")
-    print(f"Validation acc: {valid_acc*100:.3f} %")
-    train_accs.append(train_acc)
-    valid_accs.append(valid_acc)
-  return train_losses, valid_losses, train_accs, valid_accs, examples_seen
+
+    return train_losses, val_losses, track_tokens_seen
 
 
 def evaluate_model(model, train_loader, valid_loader, device, eval_iter):
