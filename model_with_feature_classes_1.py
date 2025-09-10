@@ -32,7 +32,7 @@ class GELU(nn.Module):
         super().__init__()
     
     def forward(self, x):
-        return 0.5 * x * (1 + torch.tanh(torch.sqrt(torch.tensor(2.0 / torch.pi)) * (x + 0.044715 * torch.pow(x, 3))))
+        return 0.5 * x * (1 + torch.tanh(torch.sqrt(torch.tensor(2.0 / torch.pi, device=x.device)) * (x + 0.044715 * torch.pow(x, 3))))
 
 
 class FeedForward(nn.Module):
@@ -80,7 +80,7 @@ class MultiHeadAttention(nn.Module):
         values = values.transpose(1, 2)
 
         attn_scores = queries @ keys.transpose(2, 3)
-        mask_bool = self.mask.bool()[:num_tokens, :num_tokens]
+        mask_bool = self.mask.bool()[:num_tokens, :num_tokens].to(x.device)
         attn_scores.masked_fill_(mask_bool, -torch.inf)
         attn_scores_masked_scaled = attn_scores / math.sqrt(self.head_dim)
         attn_weights = torch.softmax(attn_scores_masked_scaled, dim=-1)
