@@ -1,6 +1,6 @@
 import torch
 import tiktoken
-device = "cpu"
+device = "cuda"
 
 def generate_text_simple(model, idx, max_new_tokens, context_size):
     for _ in range(max_new_tokens):
