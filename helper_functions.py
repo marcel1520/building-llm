@@ -1,9 +1,10 @@
 import torch
 import tiktoken
-device = "cuda"
+
 
 def generate_text_simple(model, idx, max_new_tokens, context_size):
     for _ in range(max_new_tokens):
+        device = next(model.parameters()).device
         idx_cond = idx[:, -context_size:].to(device)
 
         with torch.no_grad():
@@ -17,7 +18,8 @@ def generate_text_simple(model, idx, max_new_tokens, context_size):
 
 def generate(model, idx, max_new_tokens, context_Size, top_k=5, temperature=1.0):
     for _ in range(max_new_tokens):
-        idx_split = idx[:, -context_Size:]
+        device = next(model.parameters()).device
+        idx_split = idx[:, -context_Size:].to(device)
 
         with torch.no_grad():
             logits = model(idx_split)
@@ -33,7 +35,7 @@ def generate(model, idx, max_new_tokens, context_Size, top_k=5, temperature=1.0)
         maxi = torch.gather(indices, -1, sampled_idx)
 
 
-        idx = torch.cat((idx, maxi), dim=1)
+        idx = torch.cat((idx.to(device), maxi.to(device)), dim=1)
 
     return idx
 
@@ -45,6 +47,6 @@ def text_to_token_ids(text, tokenizer):
 
 
 def token_ids_to_text(token_ids, tokenizer):
-    flat = token_ids.squeeze(0)
+    flat = token_ids.squeeze(0).detach().cpu()
     return tokenizer.decode(flat.tolist())
 
